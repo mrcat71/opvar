@@ -53,6 +53,37 @@ func Normalize(title string) (string, error) {
 	return name, nil
 }
 
+// reservedEnvNames lists shell and dynamic-loader environment variables
+// that opvar must never overwrite. A malicious vault item whose field
+// label normalizes to one of these would hijack the user's shell or
+// dynamic loader once `eval "$(opvar ...)"` runs.
+var reservedEnvNames = map[string]struct{}{
+	"PATH":                  {},
+	"LD_PRELOAD":            {},
+	"LD_LIBRARY_PATH":       {},
+	"DYLD_LIBRARY_PATH":     {},
+	"DYLD_INSERT_LIBRARIES": {},
+	"SHELL":                 {},
+	"IFS":                   {},
+	"HOME":                  {},
+	"USER":                  {},
+	"PS1":                   {},
+	"PS2":                   {},
+	"PS3":                   {},
+	"PS4":                   {},
+	"PROMPT_COMMAND":        {},
+	"BASH_ENV":              {},
+	"ENV":                   {},
+}
+
+// IsReserved reports whether the given env var name overlaps a reserved
+// shell or dynamic-loader variable. Matching is case-insensitive and
+// ignores surrounding whitespace.
+func IsReserved(name string) bool {
+	_, ok := reservedEnvNames[strings.ToUpper(strings.TrimSpace(name))]
+	return ok
+}
+
 // ValueAsString converts a JSON-decoded provider field value into a string
 // suitable for export. Returns ok=false for values that have no meaningful
 // string projection (e.g. nested objects).

@@ -148,6 +148,66 @@ func TestCollectPropagatesListWarnings(t *testing.T) {
 	}
 }
 
+func TestCollectSkipsReservedEnvNames(t *testing.T) {
+	t.Parallel()
+
+	f := &fakeFetcher{
+		listItems: []Item{{ID: "1", Title: "deploy-config", Tags: []string{"opvar-test"}}},
+		details: map[string]ItemDetails{
+			"1": mustUnmarshalDetails(t, `{
+				"id":"1","title":"deploy-config",
+				"fields":[
+					{"id":"api_token","label":"api_token","type":"CONCEALED","value":"safe-value"},
+					{"id":"PATH","label":"PATH","type":"CONCEALED","value":"/evil/bin"}
+				]
+			}`),
+		},
+	}
+
+	pairs, warnings, err := Collect(context.Background(), f, "opvar-test", false)
+	if err != nil {
+		t.Fatalf("Collect() error = %v", err)
+	}
+	if len(pairs) != 1 || pairs[0].Name != "api_token" || pairs[0].Value != "safe-value" {
+		t.Fatalf("expected only api_token pair, got %+v", pairs)
+	}
+
+	foundReservedWarning := false
+	for _, w := range warnings {
+		if strings.Contains(w, "reserved env var") && strings.Contains(w, "PATH") {
+			foundReservedWarning = true
+			break
+		}
+	}
+	if !foundReservedWarning {
+		t.Fatalf("expected warning about reserved env var PATH, got %v", warnings)
+	}
+}
+
+func TestCollectStrictFailsOnReserved(t *testing.T) {
+	t.Parallel()
+
+	f := &fakeFetcher{
+		listItems: []Item{{ID: "1", Title: "deploy-config", Tags: []string{"opvar-test"}}},
+		details: map[string]ItemDetails{
+			"1": mustUnmarshalDetails(t, `{
+				"id":"1","title":"deploy-config",
+				"fields":[
+					{"id":"PATH","label":"PATH","type":"CONCEALED","value":"/evil/bin"}
+				]
+			}`),
+		},
+	}
+
+	_, _, err := Collect(context.Background(), f, "opvar-test", true)
+	if err == nil {
+		t.Fatal("expected strict mode error for reserved env var")
+	}
+	if !strings.Contains(err.Error(), "reserved env var") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
 func TestExtractSecretValueSkipsPrimaryCredentials(t *testing.T) {
 	t.Parallel()
 

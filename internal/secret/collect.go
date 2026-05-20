@@ -65,6 +65,15 @@ func Collect(ctx context.Context, f Fetcher, label string, strict bool) ([]EnvPa
 		}
 
 		for _, pair := range itemPairs {
+			if envvar.IsReserved(pair.Name) {
+				msg := fmt.Sprintf("item %q maps to reserved env var %q (refusing to overwrite)", item.Title, pair.Name)
+				if strict {
+					return nil, warnings, errors.New(msg)
+				}
+				warnings = append(warnings, msg)
+				continue
+			}
+
 			if existingSource, ok := seenNames[pair.Name]; ok {
 				msg := fmt.Sprintf("item %q maps to duplicate variable %q (already used by %q)", item.Title, pair.Name, existingSource)
 				if strict {

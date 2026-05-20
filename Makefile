@@ -10,7 +10,7 @@ LDFLAGS := -X github.com/mrcat71/opvar/internal/cli.Version=$(VERSION)
 
 build:
 	mkdir -p $(DIST_DIR)
-	go build -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/opvar
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/opvar
 
 test:
 	go test ./...

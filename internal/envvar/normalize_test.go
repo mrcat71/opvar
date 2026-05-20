@@ -42,6 +42,37 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+func TestIsReserved(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{name: "PATH", in: "PATH", want: true},
+		{name: "lowercase path", in: "path", want: true},
+		{name: "mixed case LD_PRELOAD", in: "Ld_Preload", want: true},
+		{name: "trimmed HOME", in: " HOME ", want: true},
+		{name: "DYLD insert", in: "DYLD_INSERT_LIBRARIES", want: true},
+		{name: "PROMPT_COMMAND", in: "PROMPT_COMMAND", want: true},
+		{name: "regular API_TOKEN", in: "API_TOKEN", want: false},
+		{name: "regular db_password", in: "db_password", want: false},
+		{name: "empty", in: "", want: false},
+		{name: "whitespace only", in: "   ", want: false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := IsReserved(tt.in); got != tt.want {
+				t.Fatalf("IsReserved(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestValueAsString(t *testing.T) {
 	t.Parallel()
 
