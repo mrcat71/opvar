@@ -4,16 +4,22 @@ OUT := $(DIST_DIR)/$(BINARY)
 BINDIR ?= /usr/local/bin
 VERSION_FILE := VERSION
 VERSION ?= $(shell cat $(VERSION_FILE) 2>/dev/null || echo dev)
-LDFLAGS := -X main.version=$(VERSION)
+LDFLAGS := -X github.com/mrcat71/opvar/internal/cli.Version=$(VERSION)
 
-.PHONY: build test install clean
+.PHONY: build test vet fmt install clean
 
 build:
 	mkdir -p $(DIST_DIR)
-	go build -ldflags "$(LDFLAGS)" -o $(OUT) .
+	go build -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/opvar
 
 test:
 	go test ./...
+
+vet:
+	go vet ./...
+
+fmt:
+	gofmt -w .
 
 install: build
 	install -d "$(BINDIR)"
