@@ -1,0 +1,46 @@
+name: release
+
+# Triggered on pushing a vX.Y.Z tag.
+#
+# Required repository secrets:
+#   HOMEBREW_TAP_TOKEN  - GitHub Personal Access Token with `repo` scope on
+#                         the mrcat71/homebrew-tap repository
+# (GITHUB_TOKEN is provided automatically by GitHub Actions and is enough
+# for creating the Release in this repo.)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # create the GitHub Release in this repo
+
+jobs:
+  release:
+    name: goreleaser
+    runs-on: macos-latest    # darwin builds run natively here; could be ubuntu-latest with CGO_ENABLED=0
+    steps:
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0   # goreleaser needs full history for changelog
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          # Keep in sync with the `go` directive in go.mod. setup-go pins
+          # GOTOOLCHAIN=local, so a mismatch here blocks goreleaser's
+          # `go mod tidy` hook with "go.mod requires go >= 1.25.0".
+          go-version: "1.25"
+          check-latest: true
+
+      - name: Run goreleaser
+        uses: goreleaser/goreleaser-action@1a80836c5c9d9e5755a25cb59ec6f45a3b5f41a8 # v7
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

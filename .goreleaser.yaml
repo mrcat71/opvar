@@ -1,0 +1,89 @@
+# goreleaser v2 config for opvar.
+#
+# Run `goreleaser release --clean` on a tagged commit to:
+#   1. build opvar for darwin+linux on amd64+arm64
+#   2. archive each as opvar_<ver>_<os>_<arch>.tar.gz
+#   3. publish the archives + checksums to a GitHub Release
+#   4. push an updated Formula to the homebrew-tap repo
+#
+# Required env when running outside CI:
+#   GITHUB_TOKEN           - PAT with `repo` scope on this repo
+#   HOMEBREW_TAP_TOKEN     - PAT with `repo` scope on the homebrew-tap repo
+
+version: 2
+
+project_name: opvar
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: opvar
+    main: ./cmd/opvar
+    binary: opvar
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/mrcat71/opvar/internal/cli.Version={{ .Version }}
+
+archives:
+  - id: opvar
+    ids:
+      - opvar
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats:
+      - tar.gz
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "^style:"
+
+release:
+  github:
+    owner: mrcat71
+    name: opvar
+  draft: false
+  prerelease: auto
+
+brews:
+  - name: opvar
+    repository:
+      owner: mrcat71
+      name: homebrew-tap
+      branch: main
+      # Token resolution: HOMEBREW_TAP_TOKEN env var (set in CI as a secret).
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "brew: update {{ .ProjectName }} to {{ .Tag }}"
+    homepage: https://github.com/mrcat71/opvar
+    description: Export 1Password secrets matched by tag as shell exports or JSON.
+    license: Apache-2.0
+    install: |
+      bin.install "opvar"
+    test: |
+      system "#{bin}/opvar", "--version"
