@@ -39,7 +39,10 @@ jobs:
         uses: goreleaser/goreleaser-action@1a80836c5c9d9e5755a25cb59ec6f45a3b5f41a8 # v7
         with:
           distribution: goreleaser
-          version: latest
+          # Pin to a specific goreleaser version so a future malicious
+          # release can't auto-publish to the Homebrew tap. Renovate
+          # bumps this via PR.
+          version: "v2.15.4"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
