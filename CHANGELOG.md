@@ -4,6 +4,32 @@ All notable changes to opvar are documented in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-05-20
+
+### Security
+
+- Refuse to export reserved env var names (`PATH`, `LD_PRELOAD`,
+  `LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `DYLD_INSERT_LIBRARIES`,
+  `SHELL`, `IFS`, `HOME`, `USER`, `PS1` through `PS4`,
+  `PROMPT_COMMAND`, `BASH_ENV`, `ENV`). A vault item whose field
+  label normalizes to one of these is dropped with a warning, or
+  fails the run under `--strict`. Closes a shell-environment hijack
+  vector for users of shared vaults.
+- Pinned the goreleaser binary in CI to a specific version
+  (`v2.15.4`) so a future malicious goreleaser release cannot
+  auto-publish to the Homebrew tap.
+
+### Changed
+
+- Go binaries are now built with `-trimpath` (both `make build` and
+  goreleaser), so release artifacts are reproducible across hosts.
+- The default example tag in `README.md` and `--help` output is now
+  `my-app` instead of an internal-looking placeholder.
+
+### Added
+
+- `SECURITY.md` with vulnerability reporting policy and threat model.
+
 ## [0.1.0] - 2026-05-20
 
 ### Added
