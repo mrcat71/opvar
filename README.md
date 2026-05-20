@@ -40,7 +40,7 @@ opvar <label>
 Apply the exports to the current shell in one step:
 
 ```bash
-eval "$(opvar okira-infra)"
+eval "$(opvar my-app)"
 ```
 
 If you want a shortcut in `~/.zshrc`:

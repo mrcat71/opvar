@@ -40,8 +40,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "  opvar [--json] [--strict] [--provider NAME] <label>")
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "Examples:")
-		fmt.Fprintln(stderr, "  eval \"$(opvar okira-infra)\"")
-		fmt.Fprintln(stderr, "  opvar --json okira-infra")
+		fmt.Fprintln(stderr, "  eval \"$(opvar my-app)\"")
+		fmt.Fprintln(stderr, "  opvar --json my-app")
 		fmt.Fprintln(stderr, "  opvar --version")
 	}
 
