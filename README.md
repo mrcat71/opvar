@@ -1,24 +1,35 @@
 # opvar
 
-`opvar` is a macOS CLI utility that loads secrets from 1Password by tag (label) and prints shell `export` commands.
+`opvar` is a small CLI that loads secrets from a password manager by tag (label) and prints shell `export` commands or JSON.
+
+Today it ships with a single backend, **1Password**, but the provider layer is designed so additional backends (e.g. Bitwarden) can plug in without touching the rest of the codebase. The active provider can be selected per machine via `~/.config/opvar/config.yaml` or per invocation via `--provider`.
+
+## Install
+
+### Homebrew (recommended)
+
+```bash
+brew tap mrcat71/tap
+brew install mrcat71/tap/opvar
+```
+
+### From source
+
+```bash
+go install github.com/mrcat71/opvar/cmd/opvar@latest
+```
+
+### Local build
+
+```bash
+make build         # produces ./dist/opvar
+make install BINDIR="$HOME/.local/bin"
+```
 
 ## Requirements
 
-- [1Password CLI](https://developer.1password.com/docs/cli/) installed
-- Active `op` session (`op signin`)
-
-## How It Works
-
-1. Runs `op item list --tags <label> --format json` (server-side filtering)
-2. Loads matched item details in parallel via `op item get <id> --format json`
-3. For each matched item:
-   - Uses each field `label` (or `id` if label is empty) as the environment variable name
-   - Uses the field value as the environment variable value
-   - Skips notes fields (`notesPlain` / `NOTES`)
-4. If an item has no named exportable fields:
-   - Fallback variable name = item `title`
-   - Fallback value = first suitable secret field
-5. Prints `export ...` lines to stdout
+- 1Password CLI [`op`](https://developer.1password.com/docs/cli/) on `PATH`
+- An active `op` session (`op signin`)
 
 ## Usage
 
@@ -26,70 +37,58 @@
 opvar <label>
 ```
 
-Example:
+Apply the exports to the current shell in one step:
 
 ```bash
-eval "$(opvar <label>)"
+eval "$(opvar okira-infra)"
 ```
 
-This applies exported values to your current shell session.
-
-## Apply Immediately In Shell
-
-`opvar <label>` prints `export ...` lines.  
-To apply them in the current shell, use:
-
-```bash
-eval "$(opvar <label>)"
-```
-
-If you want a shortcut in `~/.zshrc`, use a function:
+If you want a shortcut in `~/.zshrc`:
 
 ```bash
 opvar-use() { eval "$(command opvar "$@")"; }
 ```
 
-Avoid replacing the `opvar` command name itself with an alias, otherwise you lose normal CLI usage.
+Avoid shadowing the `opvar` command itself with an alias, otherwise the plain `opvar --help` no longer works.
 
 ## Flags
 
-- `--json` output key/value pairs as JSON
-- `--strict` fail on the first invalid item (default: skip invalid items and print warnings)
+- `--json` print results as JSON instead of `export` lines
+- `--strict` fail on the first invalid item (default: skip and warn)
+- `--provider NAME` override the configured provider (e.g. `1password`)
 - `--help` show usage
-- `--v` show version
-- `--version` show version
+- `--v` / `--version` show version
 
-## Build
+## How it works
 
-```bash
-make build
+1. Lists items matching the label via `op item list --tags <label> --format json` (server-side filtering, with a slower client-side fallback for old `op` versions that don't support `--tags`).
+2. Fetches each item's details in parallel via `op item get <id> --format json`.
+3. For each item:
+   - Uses each field's `label` (or `id` if label is empty) as the env var name.
+   - Skips notes (`notesPlain` / `NOTES`) and the primary username/password credential.
+4. If an item has no named exportable fields, falls back to:
+   - Var name = item title
+   - Value = highest-priority secret field (PASSWORD purpose, then `password` id/label, then any CONCEALED type).
+5. Prints `export NAME='value'` lines to stdout, one per resolved pair.
+
+Diagnostics (skipped items, fallback notices, duplicate variable names) are written to stderr as `warning: ...` lines.
+
+## Configuration
+
+Optional YAML config at `~/.config/opvar/config.yaml` (override path with `$OPVAR_CONFIG`, override base dir with `$XDG_CONFIG_HOME`):
+
+```yaml
+# Default provider; only "1password" is supported today.
+provider: 1password
+
+providers:
+  1password:
+    # reserved for future per-provider tuning (account, vault, ...)
 ```
 
-Build output: `dist/opvar`
+If the file is missing the defaults (`provider: 1password`) apply, so existing users don't need to create anything.
 
-## Install
-
-Common Go project options are `Makefile` or `go install`.
-
-Recommended (`Makefile`, explicit target path + correct permissions):
-
-```bash
-make install BINDIR="$HOME/.local/bin"
-```
-
-System path install:
-
-```bash
-sudo make install BINDIR="/usr/local/bin"
-```
-
-The install step uses `install -m 0755`, so the binary is installed as executable.
-
-Alternative without `Makefile`:
-
-```bash
-GOBIN="$HOME/.local/bin" go install .
-```
+The `--provider` CLI flag always wins over the config file.
 
 ## Version
 
@@ -98,12 +97,18 @@ opvar --v
 opvar --version
 ```
 
-Both commands print the short semantic version (for example `0.0.1`).
+Both print the short semantic version (e.g. `0.1.0`). When installed via Homebrew or `go install`, the version is baked in at build time. For local Makefile builds, the version comes from the `VERSION` file in the repo root.
 
-Version source is the local `VERSION` file in the project root.  
-Update it and rebuild:
+## Releasing
 
-```bash
-echo "0.0.2" > VERSION
-make build
-```
+Tagged releases are built by GitHub Actions + [goreleaser](https://goreleaser.com/). Pushing a `vX.Y.Z` tag triggers:
+
+1. Cross-builds for `darwin`/`linux` × `amd64`/`arm64`.
+2. A GitHub Release with archives and `checksums.txt`.
+3. An updated Formula push to [`mrcat71/homebrew-tap`](https://github.com/mrcat71/homebrew-tap).
+
+See `.goreleaser.yaml` and `.github/workflows/release.yml`.
+
+## License
+
+[Apache-2.0](LICENSE)
