@@ -9,5 +9,23 @@
   "minimumReleaseAge": "7 days",
   "minimumReleaseAgeBehaviour": "timestamp-required",
   "internalChecksFilter": "none",
-  "pinDigests": true
+  "pinDigests": true,
+  "packageRules": [
+    {
+      "description": "actions/go-versions has no plain x.y tags, so digest pinning silently drops setup-go version bumps.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["go"],
+      "pinDigests": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track tool versions passed as action inputs, marked with a renovate comment.",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+?)\\s+depName=(?<depName>\\S+?)\\s+version:\\s*\"(?<currentValue>[^\"]+)\""
+      ]
+    }
+  ]
 }
