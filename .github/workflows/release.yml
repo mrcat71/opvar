@@ -43,7 +43,7 @@ jobs:
           # release can't auto-publish to the Homebrew tap. Renovate
           # bumps this via PR.
           # renovate: datasource=github-releases depName=goreleaser/goreleaser
-          version: "v2.18.0"
+          version: "v2.18.1"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
