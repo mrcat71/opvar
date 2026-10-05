@@ -109,6 +109,18 @@ Tagged releases are built by GitHub Actions + [goreleaser](https://goreleaser.co
 
 See `.goreleaser.yaml` and `.github/workflows/release.yml`.
 
+## Dependency updates
+
+Renovate waits seven days from release for updates subject to release-age
+checks before creating a branch (`internalChecksFilter: strict`). CI runs on
+`renovate/**` before a PR exists. Once branch checks pass, Renovate opens the PR
+and assigns `mrcat71`, including PRs configured for automerge. There is no weekly
+creation window or second seven-day wait inside the PR. Internal release-age
+checks do not substitute for CI. Updates missing required release timestamps
+remain pending in the Dependency Dashboard. Vulnerability alerts skip the age
+delay but still wait for successful branch checks. PR merge-commit checks run
+again after creation. The policy lives in `.github/renovate.json`.
+
 ## License
 
 [Apache-2.0](LICENSE)
